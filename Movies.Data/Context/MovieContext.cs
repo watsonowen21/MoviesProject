@@ -14,8 +14,8 @@ namespace Movies.Data.Context
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<Genre>().ToTable("Genre");
-            modelBuilder.Entity<Movie>().ToTable("Movie");
+            modelBuilder.Entity<Genre>().ToTable("Genres");
+            modelBuilder.Entity<Movie>().ToTable("Movies");
         }
     }
 }

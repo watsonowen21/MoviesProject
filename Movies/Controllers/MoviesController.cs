@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Movies.Interfaces.Repositories;
+using Movies.Interfaces.Services;
 using Movies.Models;
+using Movies.Models.Dtos;
 
 namespace Movies.Controllers
 {
@@ -9,25 +9,25 @@ namespace Movies.Controllers
     [ApiController]
     public class MoviesController : ControllerBase
     {
-        private readonly IMovieRepository _movieRepository;
+        private readonly IMovieService _movieService;
 
-        public MoviesController(IMovieRepository movieRepository)
+        public MoviesController(IMovieService movieService)
         {
-            _movieRepository = movieRepository;
+            _movieService= movieService;
         }
 
         // GET: api/Movies
         [HttpGet]
-        public async Task<IEnumerable<Movie>> GetMovies()
+        public async Task<IEnumerable<MovieDto>> GetMovies()
         {
-            return await _movieRepository.GetAll();
+            return await _movieService.GetMovies();
         }
 
         // GET: api/Movies/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Movie>> GetMovie(int id)
+        public async Task<ActionResult<MovieDto>> GetMovie(int id)
         {
-            var movie = await _movieRepository.GetById(id);
+            var movie = await _movieService.GetMovie(id);
 
             if (movie == null)
             {
@@ -38,43 +38,23 @@ namespace Movies.Controllers
         }
 
         // POST: api/Movies
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Movie>> PostMovie(Movie movie)
+        public async Task<ActionResult<PostMovieResponseDto>> PostMovie(PostMovieRequestDto request)
         {
-            _movieRepository.Add(movie);
-            await _movieRepository.SaveChanges();
-
+            var movie = await _movieService.AddMovie(request);
             return CreatedAtAction("GetMovie", new { id = movie.Id }, movie);
         }
 
 
         // PUT: api/Movies/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutMovie(int id, Movie movie)
+        public async Task<IActionResult> PutMovie(int id, [FromBody] UpdateMovieDto request)
         {
-            if (id != movie.Id)
-            {
-                return BadRequest();
-            }
+            var updatedMovie = await _movieService.UpdateMovie(id, request);
 
-            _movieRepository.Update(movie);
-
-            try
+            if (updatedMovie == null)
             {
-                await _movieRepository.SaveChanges();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!MovieExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                return NotFound();
             }
 
             return NoContent();
@@ -84,27 +64,14 @@ namespace Movies.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteMovie(int id)
         {
-            var movie = await _movieRepository.GetById(id);
+            var movie = await _movieService.DeleteMovie(id);
 
             if (movie == null)
             {
                 return NotFound();
             }
 
-            _movieRepository.Delete(movie);
-            await _movieRepository.SaveChanges();
-
             return NoContent();
-        }
-
-        private bool MovieExists(int id)
-        {
-            var movie = _movieRepository.GetById(id);
-
-            if (movie == null)
-            { return false; }
-
-            return true;
         }
     }
 }

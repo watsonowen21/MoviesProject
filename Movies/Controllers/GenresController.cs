@@ -1,7 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Azure.Core;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Movies.Interfaces.Repositories;
+using Movies.Interfaces.Services;
 using Movies.Models;
+using Movies.Models.Dtos;
+using Movies.Services;
 
 namespace Movies.Controllers
 {
@@ -9,25 +13,25 @@ namespace Movies.Controllers
     [ApiController]
     public class GenresController : ControllerBase
     {
-        private readonly IGenreRepository _genreRepository;
+        private readonly IGenreService _genreService;
 
-        public GenresController(IGenreRepository genreRepository)
+        public GenresController(IGenreService genreService)
         {
-            _genreRepository = genreRepository;
+            _genreService = genreService;
         }
 
         // GET: api/Genres
         [HttpGet]
-        public async Task<IEnumerable<Genre>> GetGenres()
+        public async Task<IEnumerable<GenreDto>> GetGenres()
         {
-            return await _genreRepository.GetAll();
+            return await _genreService.GetGenres();
         }
 
         // GET: api/Genres/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Genre>> GetGenre(int id)
+        public async Task<ActionResult<GenreDto>> GetGenre(int id)
         {
-            var genre = await _genreRepository.GetById(id);
+            var genre = await _genreService.GetGenre(id);
 
             if (genre == null)
             {
@@ -40,11 +44,9 @@ namespace Movies.Controllers
         // POST: api/Genres
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Genre>> PostMovie(Genre genre)
+        public async Task<ActionResult<PostGenreResponseDto>> PostGenre(PostGenreRequestDto request)
         {
-            _genreRepository.Add(genre);
-            await _genreRepository.SaveChanges();
-
+            var genre = await _genreService.AddGenre(request);
             return CreatedAtAction("GetGenre", new { id = genre.Id }, genre);
         }
 
@@ -52,29 +54,13 @@ namespace Movies.Controllers
         // PUT: api/Genres/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutGenre(int id, Genre genre)
+        public async Task<IActionResult> PutGenre(int id, [FromBody] UpdateGenreDto request)
         {
-            if (id != genre.Id)
-            {
-                return BadRequest();
-            }
+            var updatedGenre = await _genreService.UpdateGenre(id, request);
 
-            _genreRepository.Update(genre);
-
-            try
+            if (updatedGenre == null)
             {
-                await _genreRepository.SaveChanges();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!GenreExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                return NotFound();
             }
 
             return NoContent();
@@ -84,27 +70,14 @@ namespace Movies.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteGenre(int id)
         {
-            var genre = await _genreRepository.GetById(id);
+            var genre = await _genreService.DeleteGenre(id);
 
             if (genre == null)
             {
                 return NotFound();
             }
 
-            _genreRepository.Delete(genre);
-            await _genreRepository.SaveChanges();
-
             return NoContent();
-        }
-
-        private bool GenreExists(int id)
-        {
-            var genre = _genreRepository.GetById(id);
-
-            if (genre == null)
-            { return false; }
-
-            return true;
         }
     }
 }
